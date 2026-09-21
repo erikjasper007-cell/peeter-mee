@@ -1,4 +1,4 @@
-[
+let walkers = [
   {
     "id": 1,
     "image_url": "https://randomuser.me/api/portraits/women/44.jpg",
