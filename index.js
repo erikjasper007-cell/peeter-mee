@@ -65,7 +65,7 @@ let walkers = [
     }
     
   }
-]
+];
 walkers.forEach(walker => {
   console.log(walker.name);
 });
