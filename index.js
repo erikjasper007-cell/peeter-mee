@@ -63,5 +63,9 @@ let walkers = [
       "latitude": 59.4323,
       "longitude": 24.7453
     }
+    
   }
-]
+];
+walkers.forEach(walker => {
+  console.log(walker.name);
+});
