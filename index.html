@@ -17,3 +17,33 @@
     <script src="index.js"></script>
 </body>
 </html>
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Leaflet Map</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script type="module" src="script.js"></script>
+    <style>
+      #mapid {
+        width: 100%;
+        height: 400px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Map of JPG</h2>
+    <div id="mapid"></div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      var map = L.map('mapid').setView([58.375270, 26.719784], 160);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
+      let marker = L.marker([58.375270, 26.719784]).addTo(map);
+      marker.bindPopup("<b>Jaan Poska Gümnaasium</b><br>Vanemuine 35.").openPopup();
+    </script>
+  </body>
+</html>
