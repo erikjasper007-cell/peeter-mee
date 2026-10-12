@@ -3,47 +3,435 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Website</title>
-    <link rel="stylesheet" href="index.css">
-</head>
-<body>
-    <main>
-        <section class="walkers-section">
-            <h2>Available Dog Walkers</h2>
-            <div id="walkers-container"></div>
-        </section>
-    </main>
-    
-    <script src="index.js"></script>
-</body>
-</html>
-
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <title>Leaflet Map</title>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-    <script type="module" src="script.js"></script>
-    <style>
-      #mapid {
-        width: 100%;
-        height: 400px;
-      }
-    </style>
-  </head>
-  <body>
-    <h2>Map of JPG</h2>
-    <div id="mapid"></div>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <title>Happy Dog App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
-      var map = L.map('mapid').setView([58.375270, 26.719784], 160);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(map);
-      let marker = L.marker([58.375270, 26.719784]).addTo(map);
-      marker.bindPopup("<b>Jaan Poska Gümnaasium</b><br>Vanemuine 35.").openPopup();
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+                    colors: { brand: { 500: '#f59e0b', 600: '#d97706' } }
+                }
+            }
+        }
     </script>
-  </body>
+    <style>
+        .leaflet-popup-content-wrapper { border-radius: 1rem; padding: 0; overflow: hidden; }
+        .leaflet-popup-content { margin: 0; width: 220px !important; }
+        .leaflet-container { font-family: 'Plus Jakarta Sans', sans-serif; z-index: 10; }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.3); opacity: 0.2; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        .user-location-marker { position: relative; }
+        .user-location-marker::after {
+            content: ''; position: absolute; width: 28px; height: 28px; top: -4px; left: -4px;
+            background: rgba(59, 130, 246, 0.4); border-radius: 50%; animation: pulse-ring 2s infinite ease-in-out; z-index: -1;
+        }
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    </style>
+</head>
+<body class="bg-slate-900 font-sans text-slate-800 antialiased h-screen overflow-hidden flex flex-col">
+
+    <header class="bg-slate-900 border-b border-slate-800 text-white px-5 py-3 flex items-center justify-between shrink-0 z-30">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-extrabold text-xl shadow-lg shadow-amber-500/20">
+                <i class="fa-solid fa-dog"></i>
+            </div>
+            <div>
+                <h1 class="font-extrabold text-lg tracking-tight leading-none text-white flex items-center gap-2">
+                    Happy Dog App
+                    <span class="text-[10px] bg-amber-500/20 text-amber-400 font-bold px-2 py-0.5 rounded-full border border-amber-500/30">Pro</span>
+                </h1>
+                <p class="text-xs text-slate-400">Find & Book Trusted Local Dog Walkers</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700">
+            <img src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=120&q=80" alt="Homero" class="w-7 h-7 rounded-lg object-cover" onerror="this.src='https://placehold.co/100x100/e0f2fe/0369a1?text=Pet'">
+            <div class="text-left hidden md:block">
+                <span class="text-xs font-bold block text-slate-200 leading-none">Homero</span>
+                <span class="text-[10px] text-slate-400">Golden Retriever</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex-1 flex overflow-hidden relative">
+        <aside id="sidebar-panel" class="w-full lg:w-[460px] xl:w-[480px] bg-slate-50 flex flex-col h-full border-r border-slate-200 z-20">
+            <div class="p-4 bg-white border-b border-slate-200 space-y-3">
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input type="text" id="search-input" oninput="applyFilters()" placeholder="Search walker name or keywords..." class="w-full pl-10 pr-8 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:bg-white transition">
+                    <button onclick="clearSearch()" id="clear-search-btn" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                        <i class="fa-solid fa-circle-xmark text-sm"></i>
+                    </button>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <select id="tag-filter" onchange="applyFilters()" class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/50">
+                        <option value="ALL">All Specialties</option>
+                        <option value="Energetic Breeds">Energetic Breeds</option>
+                        <option value="Puppy Care">Puppy Care</option>
+                        <option value="Senior Dogs">Senior Dogs</option>
+                        <option value="Large Dogs">Large Dogs</option>
+                    </select>
+                    <select id="sort-filter" onchange="applyFilters()" class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/50">
+                        <option value="rating">Sort: Highest Rated</option>
+                        <option value="price-low">Price: Low to High</option>
+                        <option value="price-high">Price: High to Low</option>
+                    </select>
+                </div>
+                <div class="flex items-center justify-between text-xs text-slate-500 font-medium">
+                    <span>Showing <strong id="walker-count" class="text-slate-800">0</strong> walkers</span>
+                    <button onclick="resetAllFilters()" class="text-amber-600 hover:underline font-bold text-[11px]">Reset</button>
+                </div>
+            </div>
+
+            <div id="walkers-container" class="flex-1 overflow-y-auto custom-scroll p-4 space-y-3"></div>
+
+            <div class="lg:hidden p-3 bg-white border-t border-slate-200 grid grid-cols-2 gap-2">
+                <button onclick="toggleMobileView('list')" id="mobile-btn-list" class="py-2.5 rounded-xl font-bold text-xs flex items-center justify-center space-x-2 bg-amber-500 text-white shadow-xs">
+                    <i class="fa-solid fa-list"></i><span>List View</span>
+                </button>
+                <button onclick="toggleMobileView('map')" id="mobile-btn-map" class="py-2.5 rounded-xl font-bold text-xs flex items-center justify-center space-x-2 bg-slate-100 text-slate-700">
+                    <i class="fa-solid fa-map-location-dot"></i><span>Interactive Map</span>
+                </button>
+            </div>
+        </aside>
+
+        <main id="map-panel" class="flex-1 relative h-full bg-slate-200 hidden lg:block">
+            <div id="map" class="w-full h-full"></div>
+            <div class="absolute top-4 right-4 z-20 flex flex-col space-y-2">
+                <button onclick="locateUser()" title="Find My Location" class="w-10 h-10 bg-white hover:bg-slate-50 text-slate-700 rounded-xl shadow-lg flex items-center justify-center transition border border-slate-200">
+                    <i class="fa-solid fa-crosshairs text-base text-blue-600"></i>
+                </button>
+                <button onclick="resetMapView()" title="Reset Map Zoom" class="w-10 h-10 bg-white hover:bg-slate-50 text-slate-700 rounded-xl shadow-lg flex items-center justify-center transition border border-slate-200">
+                    <i class="fa-solid fa-globe text-base text-slate-600"></i>
+                </button>
+            </div>
+        </main>
+
+        <div id="detail-drawer" class="absolute inset-y-0 right-0 w-full lg:w-[480px] bg-white shadow-2xl z-40 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-900 text-white shrink-0">
+                <button onclick="closeDetailDrawer()" class="flex items-center space-x-2 text-slate-300 hover:text-amber-400 font-bold text-xs transition">
+                    <i class="fa-solid fa-arrow-left text-sm"></i><span>Back to Walkers</span>
+                </button>
+                <button onclick="closeDetailDrawer()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto custom-scroll p-6 space-y-6">
+                <div class="flex items-start space-x-4">
+                    <img id="drawer-img" src="" alt="Walker" class="w-20 h-20 rounded-2xl object-cover shadow-md border-2 border-amber-400 shrink-0">
+                    <div>
+                        <h2 id="drawer-name" class="text-xl font-extrabold text-slate-900"></h2>
+                        <p id="drawer-distance" class="text-xs text-slate-500 font-medium flex items-center gap-1 mt-1">
+                            <i class="fa-solid fa-location-dot text-amber-500"></i><span></span>
+                        </p>
+                        <div id="drawer-tags" class="flex flex-wrap gap-1 mt-2"></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center">
+                    <div>
+                        <span class="text-[11px] text-slate-400 font-medium block">Rating</span>
+                        <div class="text-sm font-extrabold text-slate-800 flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-star text-amber-400 text-xs"></i><span id="drawer-rating"></span>
+                        </div>
+                    </div>
+                    <div class="border-x border-slate-200">
+                        <span class="text-[11px] text-slate-400 font-medium block">Rate</span>
+                        <div class="text-sm font-extrabold text-amber-600">$<span id="drawer-price"></span><span class="text-[10px] text-slate-400 font-normal">/hr</span></div>
+                    </div>
+                    <div>
+                        <span class="text-[11px] text-slate-400 font-medium block">Available</span>
+                        <div id="drawer-hours" class="text-xs font-bold text-slate-700 mt-0.5"></div>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-xs uppercase font-extrabold tracking-wider text-slate-400 mb-2">About Walker</h3>
+                    <p id="drawer-bio" class="text-slate-600 text-xs leading-relaxed font-normal bg-amber-50/50 p-4 rounded-2xl border border-amber-100/60"></p>
+                </div>
+            </div>
+            <div class="p-4 bg-white border-t border-slate-100 shrink-0 shadow-lg">
+                <button onclick="openBookingModal()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold py-3 rounded-2xl shadow-lg shadow-amber-500/25 transition flex items-center justify-center space-x-2 text-xs">
+                    <i class="fa-regular fa-calendar-check text-sm"></i><span>Book Walk for Homero</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="booking-modal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 relative">
+            <button onclick="closeBookingModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div class="text-center">
+                <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-xl mx-auto mb-2">
+                    <i class="fa-solid fa-paw"></i>
+                </div>
+                <h3 class="text-lg font-extrabold text-slate-900">Schedule Dog Walk</h3>
+                <p class="text-xs text-slate-500 mt-0.5">Booking with <strong id="booking-walker-name" class="text-slate-800">Walker</strong></p>
+            </div>
+            <form id="booking-form" onsubmit="handleBookingSubmit(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Select Date</label>
+                    <input type="date" id="booking-date" required class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Time</label>
+                        <select id="booking-time" class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            <option value="09:00 AM">09:00 AM</option>
+                            <option value="11:00 AM">11:00 AM</option>
+                            <option value="02:00 PM">02:00 PM</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Duration</label>
+                        <select id="booking-duration" class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            <option value="30">30 Min</option>
+                            <option value="60" selected>60 Min</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Notes</label>
+                    <textarea id="booking-notes" rows="2" placeholder="Instructions for walker..." class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+                </div>
+                <button type="submit" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold py-2.5 rounded-xl shadow-md transition text-xs">
+                    Confirm & Send Booking Request
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const walkersData = [
+            {
+                id: 1, name: "Johann", rating: 4.8, price: 14, availability: "08:00 - 12:00", distance: "1.0 km away", lat: 58.3780, lng: 26.7290, tags: ["Energetic Breeds", "Large Dogs"],
+                image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80", bio: "Experienced dog handler. Active, high-energy walks with routine GPS photo updates."
+            },
+            {
+                id: 2, name: "Stella", rating: 4.9, price: 10, availability: "17:00 - 20:00", distance: "1.1 km away", lat: 58.3815, lng: 26.7210, tags: ["Puppy Care", "Senior Dogs"],
+                image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80", bio: "Veterinary student offering gentle evening care and joyful park sessions."
+            },
+            {
+                id: 3, name: "Elisa", rating: 4.4, price: 10, availability: "10:00 - 13:00", distance: "1.2 km away", lat: 58.3720, lng: 26.7350, tags: ["Senior Dogs"],
+                image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80", bio: "Positive reinforcement believer. Experienced with calm suburban walks."
+            },
+            {
+                id: 4, name: "Alex", rating: 4.3, price: 12, availability: "06:00 - 11:00", distance: "2.2 km away", lat: 58.3860, lng: 26.7400, tags: ["Energetic Breeds", "Puppy Care"],
+                image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80", bio: "Morning jogger providing invigorating cardio walks for active dogs needing high energy."
+            },
+            {
+                id: 5, name: "Nico", rating: 4.7, price: 15, availability: "12:00 - 18:00", distance: "2.8 km away", lat: 58.3700, lng: 26.7150, tags: ["Large Dogs", "Energetic Breeds"],
+                image: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=400&q=80", bio: "Professional pet sitter with 5+ years experience handling large and active working dog breeds."
+            }
+        ];
+
+        let map, markersGroup, userMarker, activeMarkerMap = {};
+        let activeWalkers = [...walkersData];
+        let currentSelectedWalker = walkersData[0];
+        const defaultCoords = [58.3780, 26.7290];
+
+        function initMap() {
+            map = L.map('map', { zoomControl: false }).setView(defaultCoords, 14);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
+            }).addTo(map);
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+            markersGroup = L.layerGroup().addTo(map);
+            addUserMarker(defaultCoords[0], defaultCoords[1]);
+            renderMapMarkers(activeWalkers);
+        }
+
+        function renderMapMarkers(data) {
+            markersGroup.clearLayers();
+            activeMarkerMap = {};
+            data.forEach(walker => {
+                const icon = L.divIcon({
+                    className: 'custom-map-pin',
+                    html: `<div class="w-8 h-8 rounded-full bg-amber-500 border-2 border-white shadow-md flex items-center justify-center text-slate-950 font-bold hover:scale-110 transition cursor-pointer"><i class="fa-solid fa-dog text-xs"></i></div>`,
+                    iconSize: [32, 32], iconAnchor: [16, 16]
+                });
+                const marker = L.marker([walker.lat, walker.lng], { icon: icon });
+                const popupContent = `
+                    <div class="p-3 bg-white text-left space-y-2">
+                        <div class="flex items-center space-x-2">
+                            <img src="${walker.image}" class="w-8 h-8 rounded-lg object-cover">
+                            <div>
+                                <h4 class="font-bold text-xs text-slate-900">${walker.name}</h4>
+                                <p class="text-[10px] text-amber-600 font-bold">$${walker.price}/hr</p>
+                            </div>
+                        </div>
+                        <button onclick="openWalkerDetail(${walker.id})" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-1 rounded text-[10px]">View Profile</button>
+                    </div>`;
+                marker.bindPopup(popupContent);
+                markersGroup.addLayer(marker);
+                activeMarkerMap[walker.id] = marker;
+            });
+        }
+
+        function addUserMarker(lat, lng) {
+            if (userMarker) map.removeLayer(userMarker);
+            const userIcon = L.divIcon({
+                className: 'user-location-marker',
+                html: `<div class="w-4 h-4 bg-blue-600 border-2 border-white rounded-full shadow"></div>`,
+                iconSize: [16, 16], iconAnchor: [8, 8]
+            });
+            userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(map);
+        }
+
+        function locateUser() {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    const { latitude, longitude } = pos.coords;
+                    map.flyTo([latitude, longitude], 15);
+                    addUserMarker(latitude, longitude);
+                }, () => map.flyTo(defaultCoords, 14));
+            } else { map.flyTo(defaultCoords, 14); }
+        }
+
+        function resetMapView() { map.flyTo(defaultCoords, 14); }
+
+        function renderWalkersList(data) {
+            const container = document.getElementById('walkers-container');
+            document.getElementById('walker-count').textContent = data.length;
+            container.innerHTML = '';
+            if (data.length === 0) {
+                container.innerHTML = `<p class="text-center py-8 text-xs text-slate-400 font-medium">No dog walkers found matching criteria.</p>`;
+                return;
+            }
+            data.forEach(walker => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-2xl p-3.5 shadow-xs border border-slate-200/80 hover:shadow-md hover:border-amber-300 transition cursor-pointer";
+                card.onclick = () => {
+                    map.flyTo([walker.lat, walker.lng], 15);
+                    if (activeMarkerMap[walker.id]) activeMarkerMap[walker.id].openPopup();
+                    openWalkerDetail(walker.id);
+                };
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex space-x-3 items-center">
+                            <img src="${walker.image}" alt="${walker.name}" class="w-12 h-12 rounded-xl object-cover">
+                            <div>
+                                <h3 class="font-extrabold text-slate-900 text-sm">${walker.name}</h3>
+                                <p class="text-[11px] text-slate-400 font-medium">${walker.distance}</p>
+                                <div class="flex items-center space-x-1 text-[10px] text-amber-500 font-bold mt-0.5">
+                                    <i class="fa-solid fa-star"></i><span>${walker.rating}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-base font-extrabold text-slate-900">$${walker.price}</span>
+                            <span class="text-[10px] text-slate-400 block font-normal">/hr</span>
+                        </div>
+                    </div>`;
+                container.appendChild(card);
+            });
+        }
+
+        function applyFilters() {
+            const search = document.getElementById('search-input').value.toLowerCase().trim();
+            const tag = document.getElementById('tag-filter').value;
+            const sort = document.getElementById('sort-filter').value;
+
+            document.getElementById('clear-search-btn').classList.toggle('hidden', search === '');
+
+            activeWalkers = walkersData.filter(w => {
+                const matchSearch = w.name.toLowerCase().includes(search) || w.bio.toLowerCase().includes(search);
+                const matchTag = tag === 'ALL' || w.tags.includes(tag);
+                return matchSearch && matchTag;
+            });
+
+            if (sort === 'price-low') activeWalkers.sort((a, b) => a.price - b.price);
+            else if (sort === 'price-high') activeWalkers.sort((a, b) => b.price - a.price);
+            else if (sort === 'rating') activeWalkers.sort((a, b) => b.rating - a.rating);
+
+            renderWalkersList(activeWalkers);
+            renderMapMarkers(activeWalkers);
+        }
+
+        function clearSearch() {
+            document.getElementById('search-input').value = '';
+            applyFilters();
+        }
+
+        function resetAllFilters() {
+            document.getElementById('search-input').value = '';
+            document.getElementById('tag-filter').value = 'ALL';
+            document.getElementById('sort-filter').value = 'rating';
+            applyFilters();
+        }
+
+        function openWalkerDetail(id) {
+            const walker = walkersData.find(w => w.id === id);
+            if (!walker) return;
+            currentSelectedWalker = walker;
+            document.getElementById('drawer-img').src = walker.image;
+            document.getElementById('drawer-name').textContent = walker.name;
+            document.getElementById('drawer-distance').querySelector('span').textContent = walker.distance;
+            document.getElementById('drawer-rating').textContent = walker.rating;
+            document.getElementById('drawer-price').textContent = walker.price;
+            document.getElementById('drawer-hours').textContent = walker.availability;
+            document.getElementById('drawer-bio').textContent = walker.bio;
+            document.getElementById('drawer-tags').innerHTML = walker.tags.map(t => `<span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-md">${t}</span>`).join('');
+            document.getElementById('detail-drawer').classList.remove('translate-x-full');
+        }
+
+        function closeDetailDrawer() {
+            document.getElementById('detail-drawer').classList.add('translate-x-full');
+        }
+
+        function openBookingModal() {
+            if (!currentSelectedWalker) return;
+            document.getElementById('booking-walker-name').textContent = currentSelectedWalker.name;
+            const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+            document.getElementById('booking-date').value = tomorrow.toISOString().split('T')[0];
+            document.getElementById('booking-modal').classList.remove('hidden');
+        }
+
+        function closeBookingModal() {
+            document.getElementById('booking-modal').classList.add('hidden');
+        }
+
+        function handleBookingSubmit(e) {
+            e.preventDefault();
+            closeBookingModal();
+            closeDetailDrawer();
+            if (typeof confetti === 'function') {
+                confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+            }
+        }
+
+        function toggleMobileView(view) {
+            const sidebar = document.getElementById('sidebar-panel');
+            const mapPanel = document.getElementById('map-panel');
+            const btnList = document.getElementById('mobile-btn-list');
+            const btnMap = document.getElementById('mobile-btn-map');
+
+            if (view === 'list') {
+                sidebar.classList.remove('hidden'); mapPanel.classList.add('hidden');
+                btnList.className = "py-2.5 rounded-xl font-bold text-xs flex items-center justify-center space-x-2 bg-amber-500 text-white shadow-xs";
+                btnMap.className = "py-2.5 rounded-xl font-bold text-xs flex items-center justify-center space-x-2 bg-slate-100 text-slate-700";
+            } else {
+                sidebar.classList.add('hidden'); mapPanel.classList.remove('hidden');
+                btnMap.className = "py-2.5 rounded-xl font-bold text-xs flex items-center justify-center space-x-2 bg-amber-500 text-white shadow-xs";
+                btnList.className = "py-2.5 rounded-xl font-bold text-xs flex items-center justify-center space-x-2 bg-slate-100 text-slate-700";
+                setTimeout(() => { if (map) map.invalidateSize(); }, 200);
+            }
+        }
+
+        window.onload = function() {
+            initMap();
+            renderWalkersList(activeWalkers);
+        };
+    </script>
+</body>
 </html>
