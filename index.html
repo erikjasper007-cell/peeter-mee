@@ -257,9 +257,16 @@
 
         function initMap() {
             map = L.map('map', { zoomControl: false }).setView(defaultCoords, 14);
+    
+            // Add the attribution and custom options here
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
+                attribution: '&copy; OpenStreetMap contributors', 
+                maxZoom: 19,
+                 maxNativeZoom: 19,
+                detectRetina: true
             }).addTo(map);
+
+            
             L.control.zoom({ position: 'bottomright' }).addTo(map);
             markersGroup = L.layerGroup().addTo(map);
             addUserMarker(defaultCoords[0], defaultCoords[1]);
